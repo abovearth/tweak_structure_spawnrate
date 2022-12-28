@@ -48,17 +48,19 @@ except for the file or folder to keep
 
 
 # %%configure tweaks
-# change this to the modifier you want. To halve the spawnrate of structures (less structures) put 0.5. To double the spwanrate (more structures) put 2
-spawnrate_modifier = 0.6
+# change this to the modifier you want.
+# To halve the spawnrate of structures (less structures) put 0.5.
+# To double the spwanrate (more structures) put 2
+SPAWNRATE_MODIFIER = 0.9
 
 # %%find all files
 # assign directory
 # replace this with your mods folder the r add the front is important and should be kept
-directory = r'C:\Users\roela\Twitch\Minecraft\Instances\MineColonies Official\mods'
+DIRECTORY = r'C:\Users\roela\Twitch\Minecraft\Instances\MineColonies Official\mods'
 
 # iterate over files in
 # that directory
-files = Path(directory).glob('*')
+files = Path(DIRECTORY).glob('*')
 zipfiles = []
 for file in files:
     if zipfile.is_zipfile(file):
@@ -68,12 +70,11 @@ for file in files:
 datapack_destination = Path("new_datapack")
 for zip_file in zipfiles:
     # opening the zip file in READ mode
-    with ZipFile(zip_file, 'r') as zip:
+    with ZipFile(zip_file, 'r') as zip_contents:
         # printing all the contents of the zip file
-        zip.extractall(datapack_destination)
+        zip_contents.extractall(datapack_destination)
 
 # %% clean up folder for datapack
-to_keep = "data"
 remove_all_files_and_folders_except("data", datapack_destination)
 
 # %% go deeper in data folder and keep only worldgen
@@ -102,19 +103,16 @@ for json_file in json_files:
     # %% find all spacing and separation parameters
     try:
         old_spacing = data["placement"]["spacing"]
-        new_spacing = (1/spawnrate_modifier)*old_spacing
-        # check new spacing for valididty according to the wiki
+        new_spacing = (1/SPAWNRATE_MODIFIER)*old_spacing
+        # check new spacing can't be bigger than 4096 according to the wiki
         # https://minecraft.fandom.com/wiki/Custom_world_generation/structure_set
-        if new_spacing >= 4096:
-            new_spacing = 4096
+        new_spacing = min(4096, new_spacing)
 
         data["placement"]["spacing"] = int(new_spacing)
         old_separation = data["placement"]["separation"]
-        new_separation = (1/spawnrate_modifier)*old_separation
-        if new_separation >= 4096:
-            new_separation = 4096
-        if new_separation > new_spacing:
-            new_separation = new_spacing
+        new_separation = (1/SPAWNRATE_MODIFIER)*old_separation
+        # new separation can't be bigger than 4096 or the spacing
+        new_separation = min(4096, new_separation, new_spacing)
         data["placement"]["separation"] = int(new_separation)
 
     except KeyError:
@@ -125,7 +123,8 @@ for json_file in json_files:
 # %% add pack.mcmeta
 mcmeta_data = {
     "pack": {
-        "description": "Structures spawnrate has been tweaked to " + str(spawnrate_modifier) + " the orginal value.",
+        "description": "Structures spawnrate has been tweaked to "
+        + str(SPAWNRATE_MODIFIER) + " the orginal value.",
         "pack_format": 10
     }
 }
